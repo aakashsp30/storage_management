@@ -1,13 +1,3 @@
-## 📋 <a name="table">Table of Contents</a>
-
-1. 🤖 [Introduction](#introduction)
-2. ⚙️ [Tech Stack](#tech-stack)
-3. 🔋 [Features](#features)
-4. 🤸 [Quick Start](#quick-start)
-5. 🔗 [Assets](#links)
-6. 🚀 [More](#more)
-
-
 ## <a name="introduction">🤖 Introduction</a>
 
 A storage management and file sharing platform that lets users effortlessly upload, organize, and share files. Built with the latest Next.js 15 and the Appwrite Node SDK, utilizing advanced features for seamless file management.
@@ -59,8 +49,8 @@ Make sure you have the following installed on your machine:
 **Cloning the Repository**
 
 ```bash
-git clone https://github.com/JavaScript-Mastery-Pro/storage_management_solution.git
-cd storage_management_solution
+git clone https://github.com/aakashsp30/storage_management.git
+cd storage_management
 ```
 
 **Installation**
