@@ -232,3 +232,45 @@ export async function getTotalSpaceUsed() {
     handleError(error, "Error calculating total space used:, ");
   }
 }
+
+export const createFileDocument = async ({
+  bucketFileId,
+  fileName,
+  fileSize,
+  ownerId,
+  accountId,
+  path,
+}: CreateFileDocumentProps) => {
+  const { databases, storage } = await createAdminClient();
+
+  try {
+    const fileDocument = {
+      type: getFileType(fileName).type,
+      name: fileName,
+      url: constructFileUrl(bucketFileId),
+      extension: getFileType(fileName).extension,
+      size: fileSize,
+      owner: ownerId,
+      accountId,
+      users: [],
+      bucketFileId,
+    };
+
+    const newFile = await databases
+      .createDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.filesCollectionId,
+        ID.unique(),
+        fileDocument
+      )
+      .catch(async (error: unknown) => {
+        await storage.deleteFile(appwriteConfig.bucketId, bucketFileId);
+        handleError(error, "Failed to create file document");
+      });
+
+    revalidatePath(path);
+    return parseStringify(newFile);
+  } catch (error) {
+    handleError(error, "Failed to create file document");
+  }
+};

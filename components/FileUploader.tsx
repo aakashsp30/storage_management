@@ -8,8 +8,10 @@ import Image from "next/image";
 import Thumbnail from "./Thumbnail";
 import { MAX_FILE_SIZE } from "@/constants";
 import { useToast } from "@/hooks/use-toast";
-import { uploadFile } from "@/lib/actions/file.actions";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { clientStorage } from "@/lib/appwrite/client"; // Import client storage
+import { ID } from "appwrite";
+import { createFileDocument } from "@/lib/actions/file.actions";
 
 interface Props {
   ownerId: string;
@@ -19,12 +21,12 @@ interface Props {
 
 const FileUploader = ({ ownerId, accountId, className }: Props) => {
   const path = usePathname();
+  const router = useRouter();
   const { toast } = useToast();
   const [files, setFiles] = useState<File[]>([]);
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
-      // Do something with the files
       setFiles(acceptedFiles);
 
       const uploadPromises = acceptedFiles.map(async (file) => {
@@ -44,22 +46,48 @@ const FileUploader = ({ ownerId, accountId, className }: Props) => {
           });
         }
 
-        return uploadFile({ file, ownerId, accountId, path }).then(
-          (uploadedFile) => {
-            if (uploadedFile) {
-              setFiles((prevFiles) =>
-                prevFiles.filter((f) => f.name !== file.name)
-              );
-            }
-          }
-        );
+        try {
+          // Upload directly to Appwrite from browser
+          const bucketFile = await clientStorage.createFile(
+            process.env.NEXT_PUBLIC_APPWRITE_BUCKET!,
+            ID.unique(),
+            file
+          );
+
+          // Create database document via server action (small payload)
+          await createFileDocument({
+            bucketFileId: bucketFile.$id,
+            fileName: bucketFile.name,
+            fileSize: bucketFile.sizeOriginal,
+            ownerId,
+            accountId,
+            path,
+          });
+
+          setFiles((prevFiles) =>
+            prevFiles.filter((f) => f.name !== file.name)
+          );
+
+          router.refresh();
+        } catch (error) {
+          console.error("Upload failed:", error);
+          setFiles((prevFiles) =>
+            prevFiles.filter((f) => f.name !== file.name)
+          );
+
+          toast({
+            description: "Upload failed. Please try again.",
+            className: "error-toast",
+          });
+        }
       });
 
       await Promise.all(uploadPromises);
     },
-    [ownerId, accountId, path]
+    [ownerId, accountId, path, toast, router]
   );
-  const { getRootProps, getInputProps} = useDropzone({ onDrop });
+
+  const { getRootProps, getInputProps } = useDropzone({ onDrop });
 
   const handleRemoveFile = async (
     e: React.MouseEvent<HTMLImageElement, MouseEvent>,
